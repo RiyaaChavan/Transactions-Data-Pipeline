@@ -1,0 +1,222 @@
+# version: "3.8"
+
+# services:
+#   zookeeper:
+#     image: confluentinc/cp-zookeeper:latest
+#     environment:
+#       ZOOKEEPER_CLIENT_PORT: 2181
+#       ZOOKEEPER_TICK_TIME: 2000
+#     ports:
+#       - "2181:2181"
+
+#   kafka:
+#     image: confluentinc/cp-kafka:latest
+#     depends_on:
+#       - zookeeper
+#     ports:
+#       - "9092:9092"
+#     environment:
+#       KAFKA_BROKER_ID: 1
+#       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+#       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+#       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+#       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+#       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+#   timescaledb:
+#     build:
+#       context: ./Postgre
+#       dockerfile: Dockerfile
+#     ports:
+#       - "5432:5432"
+#     environment:
+#       POSTGRES_DB: financial_transactions
+#       POSTGRES_USER: admin
+#       POSTGRES_PASSWORD: password
+#     volumes:
+#       - timescaledb_data:/var/lib/postgresql/data
+#       - ./Postgre/init.sql:/docker-entrypoint-initdb.d/initdb.sql
+
+#   grafana:
+#     image: grafana/grafana:latest
+#     ports:
+#       - "3001:3000"
+#     environment:
+#       - GF_SECURITY_ADMIN_USER=admin
+#       - GF_SECURITY_ADMIN_PASSWORD=admin
+#       - GF_ALLOW_EMBEDDING=true
+#       - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/
+#     volumes:
+#       - grafana_data:/var/lib/grafana
+#       - ./grafana/provisioning:/etc/grafana/provisioning
+#       - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+#     depends_on:
+#       - timescaledb
+#     restart: always
+
+#   backend:
+#     build:
+#       context: ./backend
+#       dockerfile: Dockerfile
+#     ports:
+#       - "5000:5000"
+#     depends_on:
+#       - kafka
+#       - timescaledb
+#     environment:
+#       - KAFKA_BROKER=kafka:29092
+#       - POSTGRES_HOST=timescaledb
+#       - POSTGRES_DB=financial_transactions
+#       - POSTGRES_USER=admin
+#       - POSTGRES_PASSWORD=password
+
+#   frontend:
+#     build:
+#       context: ./frontend
+#       dockerfile: Dockerfile
+#     ports:
+#       - "3000:80"
+#     depends_on:
+#       - backend
+
+#   spark-master:
+#     image: bitnami/spark:latest
+#     ports:
+#       - "8080:8080"
+#       - "7077:7077"
+#     environment:
+#       - SPARK_MODE=master
+#   consumer:
+#     build:
+#       context: ./consumer
+#       dockerfile: Dockerfile
+#     ports:
+#       - "5001:5000"
+#     depends_on:
+#       - kafka
+#       - timescaledb
+#     environment:
+#       - KAFKA_BROKER=kafka:29092
+#       - POSTGRES_HOST=timescaledb
+#       - POSTGRES_DB=financial_transactions
+#       - POSTGRES_USER=admin
+#       - POSTGRES_PASSWORD=password
+#     command: ["python", "consumer.py"]
+
+# volumes:
+#   timescaledb_data:
+#   grafana_data:
+
+version: "3.8"
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  timescaledb:
+    build:
+      context: ./Postgre
+      dockerfile: Dockerfile
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: financial_transactions
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+      - ./Postgre/init.sql:/docker-entrypoint-initdb.d/init.sql
+      #./Postgre/init-timescaledb.sh:/docker-entrypoint-initdb.d/init-timescaledb.sh
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_ALLOW_EMBEDDING=true
+      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+    depends_on:
+      - timescaledb
+    restart: always
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    depends_on:
+      - kafka
+      - timescaledb
+    environment:
+      - KAFKA_BROKER=kafka:29092
+      - POSTGRES_HOST=timescaledb
+      - POSTGRES_DB=financial_transactions
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+  spark-master:
+    image: bitnami/spark:latest
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    environment:
+      - SPARK_MODE=master
+
+  consumer:
+    build:
+      context: ./consumer
+    ports:
+      - "5001:5000"
+    depends_on:
+      - kafka
+      - timescaledb
+    environment:
+      - KAFKA_BROKER=kafka:29092
+      - POSTGRES_HOST=timescaledb
+      - POSTGRES_DB=financial_transactions
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+    command: ["python", "consumer.py"]
+
+volumes:
+  timescaledb_data:
+  grafana_data:
+
+networks:
+  default:
+    name: project_network

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Uploader</title>
+</head>
+<body>
+    <h1>Upload CSV to Kafka</h1>
+    <form id="uploadForm">
+        <input type="file" id="csvFile" accept=".csv" required>
+        <button type="submit">Upload</button>
+    </form>
+    <div id="responseMessage"></div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('csvFile');
+            if (!fileInput.files[0]) {
+                alert('Please select a CSV file to upload.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch('http://localhost:5000/upload_csv', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                document.getElementById('responseMessage').innerText = result.message || result.error;
+            } catch (err) {
+                document.getElementById('responseMessage').innerText = 'Error uploading file.';
+                console.error(err);
+            }
+        });
+    </script>
+</body>
+</html>

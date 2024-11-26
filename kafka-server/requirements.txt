@@ -1,0 +1,5 @@
+# kafka-server/requirements.txt
+
+pyspark
+kafka-python
+psycopg2-binary
